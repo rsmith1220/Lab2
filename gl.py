@@ -2,6 +2,8 @@ import struct
 from collections import namedtuple
 import numpy as np
 
+from matesRS import matriz, cruz, inversa, subtract, normal
+
 from math import cos, sin, tan, pi
 
 import random
@@ -73,56 +75,45 @@ class Renderer(object):
         self.vpWidth = width
         self.vpHeight = height
 
-        self.viewportMatrix = np.matrix([[width/2,0,0,posX+width/2],
+        self.viewportMatrix = [[width/2,0,0,posX+width/2],
                                          [0,height/2,0,posY+height/2],
                                          [0,0,0.5,0.5],
-                                         [0,0,0,1]])
+                                         [0,0,0,1]]
 
         self.glProjectionMatrix()
-
-    def cruz(a, b):
-        result = [a[1]*b[2] - a[2]*b[1],
-            a[2]*b[0] - a[0]*b[2],
-            a[0]*b[1] - a[1]*b[0]]
-
-        return result
-
 
 
     def glViewMatrix(self, translate = V3(0,0,0), rotate = V3(0,0,0)):
         self.camMatrix = self.glCreateObjectMatrix(translate, rotate)
-        self.viewMatrix = np.linalg.inv(self.camMatrix)
-
-    def glLookAt(self, eye, camPosition = V3(0,0,0)):
-        forward = np.subtract(camPosition, eye)
-        forward = forward / np.linalg.norm(forward)
         
-        right =[V3(0,1,0)[1]*forward[2] - V3(0,1,0)[2]*forward[1],
-            V3(0,1,0)[2]*forward[0] - V3(0,1,0)[0]*forward[2],
-            V3(0,1,0)[0]*forward[1] - V3(0,1,0)[1]*forward[0]]
-        right = right / np.linalg.norm(right)
+        self.viewMatrix = inversa(self.camMatrix)
+        
+    def glLookAt(self, eye, camPosition = V3(0,0,0)):
+        forward = subtract(camPosition, eye)
+        forward = normal(forward)
+        
+        right =cruz(V3(0,1,0),forward)
+        right =  normal(right)
 
-        up = [forward[1]*right[2] - forward[2]*right[1],
-            forward[2]*right[0] - forward[0]*right[2],
-            forward[0]*right[1] - forward[1]*right[0]]
-        up = up / np.linalg.norm(up)
+        up = cruz(forward,right)
+        up = normal(up)
 
-        self.camMatrix = np.matrix([[right[0],up[0],forward[0],camPosition[0]],
+        self.camMatrix = [[right[0],up[0],forward[0],camPosition[0]],
                                     [right[1],up[1],forward[1],camPosition[1]],
                                     [right[2],up[2],forward[2],camPosition[2]],
-                                    [0,0,0,1]])
+                                    [0,0,0,1]]
 
-        self.viewMatrix = np.linalg.inv(self.camMatrix)
+        self.viewMatrix = inversa(self.camMatrix)
 
     def glProjectionMatrix(self, n = 0.1, f = 1000, fov = 60):
         aspectRatio = self.vpWidth / self.vpHeight
         t = tan( (fov * pi / 180) / 2) * n
         r = t * aspectRatio
 
-        self.projectionMatrix = np.matrix([[n/r,0,0,0],
+        self.projectionMatrix = [[n/r,0,0,0],
                                            [0,n/t,0,0],
                                            [0,0,-(f+n)/(f-n),-(2*f*n)/(f-n)],
-                                           [0,0,-1,0]])
+                                           [0,0,-1,0]]
 
 
 
@@ -184,13 +175,9 @@ class Renderer(object):
                              [0, 0, 0, 1]]
 
         #multiplicacion de matrices
-        result11 = [[sum(pitchMat * yawMat for pitchMat, yawMat in zip(tr_row, rot_row))
-                        for rot_row in zip(*yawMat)]
-                                for tr_row in pitchMat]
+        result11 = matriz(pitchMat,yawMat)
  
-        result22 = [[sum(result11 * rollMat for result11, rollMat in zip(r1_row, roll_row))
-                        for roll_row in zip(*rollMat)]
-                                for r1_row in result11]
+        result22 = matriz(result11,rollMat)
 
         return result22
 
@@ -210,49 +197,38 @@ class Renderer(object):
                               [0, 0, 0, 1]]
 
         #multiplicacion de matrices
-        result1 = [[sum(translation * rotation for translation, rotation in zip(tr_row, rot_row))
-                        for rot_row in zip(*rotation)]
-                                for tr_row in translation]
+        result1 = matriz(translation,rotation)
  
-        result2 = [[sum(result1 * scaleMat for result1, scaleMat in zip(r1_row, scale_row))
-                        for scale_row in zip(*scaleMat)]
-                                for r1_row in result1]
+        result2 = matriz(result1,scaleMat)
         return result2
 
     def glTransform(self, vertex, matrix):
-    
-        result = []
-        for i in range(len(matrix[0])): #this loops through columns of the matrix
-            total = 0
-            for j in range(len(vertex)): #this loops through vector coordinates & rows of matrix
-                total += vertex[j] * matrix[j][i]
-            result.append(total)
-        return result
+        V=V4(vertex[0],vertex[1],vertex[2],1)
+        vt=cruz(matrix,V)
+        vf=V3(vt[0]/vt[3],
+                vt[1]/vt[3],
+                vt[2]/vt[3])
+        return vf
 
 
-        # for row in matrix:
-        #     res=0
-        #     for element in range(len(row)):
-        #         res+=(row[element]*vertex[element])
-        #     result.append(res)
-        # return result
+
 
     def glDirTransform(self, dirVector, rotMatrix):
         v = V4(dirVector[0], dirVector[1], dirVector[2], 0)
-        vt = []
-        result = []
-        for i in range(len(rotMatrix[0])): #this loops through columns of the matrix
-            total = 0
-            for j in range(len(v)): #this loops through vector coordinates & rows of matrix
-                total += v[j] * rotMatrix[j][i]
-            vt.append(total)
-        return result
+        vt = cruz(rotMatrix,v)
+        vf=V3(vt[0],
+                vt[1],
+                vt[2])
         
+        return vf
 
     def glCamTransform(self, vertex):
         v = V4(vertex[0], vertex[1], vertex[2], 1)
-        vt = self.viewportMatrix @ self.projectionMatrix @ self.viewMatrix @ v
-        vt = vt.tolist()[0]
+
+        vt=cruz(self.viewportMatrix,cruz(self.projectionMatrix,cruz(self.viewMatrix,v)))
+        
+        
+        
         vf = V3(vt[0] / vt[3],
                 vt[1] / vt[3],
                 vt[2] / vt[3])
@@ -443,11 +419,9 @@ class Renderer(object):
      
             resta2.append(i - j)
 
-        triangleNormal = [resta1[1]*resta2[2] - resta1[2]*resta2[1],
-            resta1[2]*resta2[0] - resta1[0]*resta2[2],
-            resta1[0]*resta2[1] - resta1[1]*resta2[0]]
+        triangleNormal = cruz(resta1,resta2)
         # normalizar
-        triangleNormal = triangleNormal / np.linalg.norm(triangleNormal)
+        triangleNormal =  normal(triangleNormal)
 
         minX = 0 if (minX < 0) else minX 
         minY = 0 if (minY < 0) else minY 
