@@ -15,7 +15,6 @@ def cruz(X,Y):
 
 def matrizporvector(matriz,vector):
     result = []
-    print(matriz)
     for i in range(len(matriz[0])): #this loops through columns of the matrix
         total = 0
         for j in range(len(vector)): #this loops through vector coordinates & rows of matrix

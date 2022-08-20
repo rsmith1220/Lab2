@@ -2,7 +2,7 @@ import struct
 from collections import namedtuple
 import numpy as np
 
-from matesRS import matriz, cruz, inversa, subtract, normal
+from matesRS import matriz, cruz, inversa, matrizporvector, subtract, normal
 
 from math import cos, sin, tan, pi
 
@@ -204,7 +204,7 @@ class Renderer(object):
 
     def glTransform(self, vertex, matrix):
         V=V4(vertex[0],vertex[1],vertex[2],1)
-        vt=cruz(matrix,V)
+        vt=matrizporvector(matrix,V)
         vf=V3(vt[0]/vt[3],
                 vt[1]/vt[3],
                 vt[2]/vt[3])
@@ -215,7 +215,7 @@ class Renderer(object):
 
     def glDirTransform(self, dirVector, rotMatrix):
         v = V4(dirVector[0], dirVector[1], dirVector[2], 0)
-        vt = cruz(rotMatrix,v)
+        vt = matrizporvector(rotMatrix,v)
         vf=V3(vt[0],
                 vt[1],
                 vt[2])
@@ -225,7 +225,7 @@ class Renderer(object):
     def glCamTransform(self, vertex):
         v = V4(vertex[0], vertex[1], vertex[2], 1)
 
-        vt=cruz(self.viewportMatrix,cruz(self.projectionMatrix,cruz(self.viewMatrix,v)))
+        vt=matrizporvector(self.viewportMatrix,matrizporvector(self.projectionMatrix,matrizporvector(self.viewMatrix,v)))
         
         
         
@@ -423,10 +423,10 @@ class Renderer(object):
         # normalizar
         triangleNormal =  normal(triangleNormal)
 
-        minX = 0 if (minX < 0) else minX 
-        minY = 0 if (minY < 0) else minY 
-        maxX = self.width if (maxX > self.width) else maxX 
-        maxY = self.height if (maxY > self.height) else maxY 
+        # minX = 0 if (minX < 0) else minX 
+        # minY = 0 if (minY < 0) else minY 
+        # maxX = self.width if (maxX > self.width) else maxX 
+        # maxY = self.height if (maxY > self.height) else maxY 
         for x in range(minX, maxX + 1):
             for y in range(minY, maxY + 1):
                 u, v, w = baryCoords(A, B, C, V2(x, y))
