@@ -1,24 +1,39 @@
 
 # Rebecca Smith
-def matriz(m1, m2):
-    result=[[sum(m1 * m2 for m1, m2 in zip(r1, r2))for r2 in zip(*m2)]for r1 in m1]
+from collections import namedtuple
 
+V3 = namedtuple('Point3', ['x', 'y', 'z'])
+
+def matriz(m1, m2):
+    result=[]
+    for i in range(len(m1)):
+        row = []
+        for j in range(len(m2[0])):
+            row.append(0)
+
+        for j in range(len(m2[0])):
+            for k in range(len(m2)):
+                row[j] += ((m1[i][k] * m2[k][j]).real)
+        
+        result.append(row)
+    
+    
     return result
 
 def cruz(X,Y):
     x = X[1]*Y[2] - Y[1]*X[2]
     y = X[2]*Y[0] - Y[2]*X[0]
     z = X[0]*Y[1] - Y[0]*X[1]
-    lista=[x.real,y.real,z.real]
-    return lista
+    # lista=[x.real,y.real,z.real]
+    return V3((x.real),(y.real),(z.real))
 
 
 def matrizporvector(matriz,vector):
     result = []
-    for i in range(len(matriz[0])): #this loops through columns of the matrix
+    for i in range(len(matriz)): #this loops through columns of the matrix
         total = 0
         for j in range(len(vector)): #this loops through vector coordinates & rows of matrix
-            total += vector[j] * matriz[j][i]
+            total += ((vector[j] * matriz[i][j]).real)
         result.append(total)
     return result
 

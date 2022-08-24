@@ -24,7 +24,7 @@ rend.active_shader = flat
 
 rend.glLoadModel("cookie.obj",
                 translate = V3(0, 0, -10),
-                scale = V3(0.01,0.01,0.01),
+                scale = V3(2,2,2),
                 rotate = V3(0, 65, 90)
                 )
 
